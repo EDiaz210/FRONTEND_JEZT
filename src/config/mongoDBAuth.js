@@ -86,16 +86,22 @@ export class MongoDBAuth extends LocalAuth {
       
       this.lastSaveTime = now;
       
-      if (!this.session) {
-        console.warn(`[MongoDB Auth] No hay sesión para guardar`);
+      // 🔑 IMPORTANTE: Obtener sesión del objeto LocalAuth
+      // this.session podría estar en diferentes lugares
+      const sessionToSave = this.session || this.sessionData || {};
+      
+      if (!sessionToSave || Object.keys(sessionToSave).length === 0) {
+        console.warn(`[MongoDB Auth] ⚠️ No hay sesión para guardar (objeto vacío)`);
         return;
       }
+
+      console.log(`[MongoDB Auth] Guardando sesión - Datos: ${Object.keys(sessionToSave).length} claves`);
 
       await WhatsAppSession.updateOne(
         { clientId: this.clientId },
         {
           $set: {
-            sessionData: this.session,
+            sessionData: sessionToSave,
             updatedAt: new Date()
           }
         },

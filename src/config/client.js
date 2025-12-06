@@ -48,6 +48,14 @@ client.on("ready", async () => {
   await markAsReadyInMongo("default");
   console.log("✅ Cliente listo y conectado (MongoDB)");
   
+  // ✅ FORZAR GUARDAR SESIÓN INMEDIATAMENTE cuando está lista
+  console.log("[Ready] Guardando sesión de forma forzada...");
+  if (mongoDBAuthInstance && mongoDBAuthInstance.session) {
+    await mongoDBAuthInstance.saveSessionToMongo();
+  } else {
+    console.warn("[Ready] ⚠️ No se encontró sesión en mongoDBAuthInstance");
+  }
+  
   // ✅ Iniciar poller SOLO cuando estemos completamente listos
   if (!autoSaveSessionId) {
     startPoller();

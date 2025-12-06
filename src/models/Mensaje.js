@@ -4,7 +4,7 @@ import { encryptText, decryptText, isEncrypted } from '../utils/crypto.js';
 const mensajeSchema = new Schema({
   numbers: {
     type: [String],
-    required: true, // número(s)
+    required: true, 
   },
   message: {
     type: String,
