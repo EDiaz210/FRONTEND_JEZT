@@ -137,17 +137,15 @@ export const enviarPregunta = async (req, res) => {
               if (parsed.etapa === 'completado') {
                 respuestaFinal = parsed.respuesta;
                 
-                // Enviar respuesta completa al frontend
+                // Enviar respuesta completa al frontend con el formato esperado
                 res.write(`data: ${JSON.stringify({
-                  tipo: 'completado',
-                  answer: respuestaFinal,
-                  response: respuestaFinal,
-                  confianza: parsed.confianza || 0.0,
+                  etapa: 'completado',
+                  respuesta: respuestaFinal,
+                  confianza: parsed.confianza || 'media',
                   fuentes: parsed.fuentes || [],
                   id_respuesta_python: parsed.id_respuesta_python || null,
                   calificacion_actual: parsed.calificacion_actual || 0,
-                  necesita_calificacion: parsed.necesita_calificacion || false
-                  //  ELIMINADO: puede_reportar
+                  necesita_calificacion: parsed.necesita_calificacion || true
                 })}\n\n`);
                 
                 // Guardar respuesta en MongoDB
@@ -158,11 +156,10 @@ export const enviarPregunta = async (req, res) => {
                 }
                 
               } else if (parsed.etapa && parsed.etapa !== 'completado') {
-                // Reenviar progreso al frontend
+                // Reenviar progreso al frontend con el mismo formato
                 res.write(`data: ${JSON.stringify({
-                  tipo: 'progreso', 
-                  mensaje: parsed.mensaje || 'Procesando...',
-                  etapa: parsed.etapa
+                  etapa: parsed.etapa,
+                  mensaje: parsed.mensaje || 'Procesando...'
                 })}\n\n`);
               }
             } catch (e) {
@@ -179,15 +176,13 @@ export const enviarPregunta = async (req, res) => {
       const respuestaFallback = "Lo siento, el servicio de IA no está disponible en este momento. Por favor intenta más tarde.";
       
       res.write(`data: ${JSON.stringify({
-        tipo: 'completado',
-        answer: respuestaFallback,
-        response: respuestaFallback,
-        confianza: 0.0,
+        etapa: 'completado',
+        respuesta: respuestaFallback,
+        confianza: 'baja',
         fuentes: [],
         id_respuesta_python: null,
         calificacion_actual: 0,
         necesita_calificacion: false
-        //  ELIMINADO: puede_reportar
       })}\n\n`);
       
       // Guardar respuesta de fallback
@@ -202,9 +197,8 @@ export const enviarPregunta = async (req, res) => {
     
     // Enviar error como streaming
     res.write(`data: ${JSON.stringify({
-      tipo: 'error',
-      answer: 'Lo siento, hubo un error al procesar tu pregunta.',
-      response: 'Lo siento, hubo un error al procesar tu pregunta.'
+      etapa: 'error',
+      respuesta: 'Lo siento, hubo un error al procesar tu pregunta.'
     })}\n\n`);
     res.end();
   }
