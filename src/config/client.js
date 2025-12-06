@@ -44,7 +44,6 @@ client.on("authenticated", async () => {
 
 client.on("ready", async () => {
   readyAt = Date.now();
-  sessionClosed = false; // ✅ Sesión conectada nuevamente
   // 💾 Marcar como listo en MongoDB
   await markAsReadyInMongo("default");
   console.log("✅ Cliente listo y conectado (MongoDB)");
@@ -57,14 +56,12 @@ client.on("auth_failure", (err) => {
 client.on("disconnected", (reason) => {
   console.warn("⚠️ Cliente desconectado:", reason);
   readyAt = null; // Reset estado
-  sessionClosed = true; // Marcar sesión como cerrada
 });
 
 client.on("change_state", async (state) => {
   console.log("➡️ Estado del cliente:", state);
   if (state === "CONNECTED" && !readyAt) {
     readyAt = Date.now();
-    sessionClosed = false; // ✅ Sesión conectada
     await markAsReadyInMongo("default");
     console.log("✅ Cliente listo y conectado (desde change_state)");
   }
@@ -73,55 +70,40 @@ client.on("change_state", async (state) => {
 
 // ---------------------- POLLER ----------------------
 let pollerId = null;
-let sessionClosed = false;
 let autoSaveSessionId = null;
 
 const startPoller = () => {
   if (pollerId) return;
   
-  // Poller principal: verificar estado
-  pollerId = setInterval(async () => {
-    try {
-      // No intentar si la sesión está cerrada
-      if (sessionClosed) return;
-      
-      const state = await client.getState().catch(err => {
-        // Si falla, probablemente la sesión está cerrada
-        if (err.message.includes("Session closed") || err.message.includes("Protocol error")) {
-          sessionClosed = true;
-          console.warn("⚠️ Sesión de Puppeteer cerrada, deteniendo poller");
-          return null;
-        }
-        throw err;
-      });
-      
-      if (state && state !== "CONNECTED" && getIsReady()) {
-        console.warn("⚠️ Cliente desconectado o no conectado, estado actual:", state);
-      }
-    } catch (err) {
-      // Solo log, no crashear
-      if (!err.message.includes("Session closed")) {
-        console.debug("ℹ️ Poller debug:", err.message);
-      }
-    }
-  }, 5000);
-
-  // Auto-save: guardar sesión cada 30 segundos si está conectado
+  // ✅ NUNCA hacer getState() si no estamos listos
+  // El poller SOLO guarda la sesión periódicamente
   autoSaveSessionId = setInterval(async () => {
     try {
-      if (getIsReady() && mongoDBAuthInstance && !sessionClosed) {
+      // Solo guardar si estamos COMPLETAMENTE listos
+      if (getIsReady() && mongoDBAuthInstance) {
         console.log("[Auto-Save] Guardando sesión en MongoDB...");
         await mongoDBAuthInstance.saveSessionToMongo();
       }
     } catch (err) {
       console.error("[Auto-Save] Error:", err.message);
     }
-  }, 30000);
+  }, 30000); // Cada 30 segundos
+
+  console.log("[Poller] Iniciado - guardará sesión cada 30s");
 };
 
-setTimeout(() => {
-  startPoller();
-}, 5000); // espera 5 segundos
+// Iniciar poller DESPUÉS de autenticación, no antes
+client.on("authenticated", async () => {
+  console.log("✅ Sesión autenticada correctamente");
+  
+  // Iniciar poller SOLO después de autenticar
+  setTimeout(() => {
+    if (!pollerId && !autoSaveSessionId) {
+      startPoller();
+    }
+    client.emit("ready");
+  }, 5000);
+});
 
 
 // ---------------------- FUNCIONES ----------------------
