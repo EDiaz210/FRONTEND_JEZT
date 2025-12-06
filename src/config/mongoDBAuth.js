@@ -3,7 +3,8 @@
  * Almacena y recupera sesiones de WhatsApp desde MongoDB en lugar de archivos
  */
 import WhatsAppSession from '../models/WhatsAppSession.js';
-import { AuthStrategy } from 'whatsapp-web.js';
+import pkg from 'whatsapp-web.js';
+const { AuthStrategy } = pkg;
 
 export class MongoDBAuth extends AuthStrategy {
   constructor(clientId = 'default') {
