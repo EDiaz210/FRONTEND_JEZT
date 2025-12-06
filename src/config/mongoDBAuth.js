@@ -13,6 +13,7 @@ export class MongoDBAuth extends LocalAuth {
   constructor(clientId = 'default') {
     super({ clientId });
     this.clientId = clientId;
+    this.lastSaveTime = 0;
   }
 
   async beforeBrowserInitialize() {
@@ -27,7 +28,7 @@ export class MongoDBAuth extends LocalAuth {
         this.session = sessionDoc.sessionData;
         return this.session;
       } else {
-        console.log(`[MongoDB Auth] ⚠️ No hay sesión en MongoDB`);
+        console.log(`[MongoDB Auth] ⚠️ No hay sesión en MongoDB, será creada al autenticar`);
         return null;
       }
     } catch (err) {
@@ -42,26 +43,67 @@ export class MongoDBAuth extends LocalAuth {
     try {
       // Guardar/actualizar sesión en MongoDB
       if (this.session) {
-        await WhatsAppSession.updateOne(
+        console.log(`[MongoDB Auth] Guardando sesión... tamaño: ${JSON.stringify(this.session).length} bytes`);
+        
+        const result = await WhatsAppSession.updateOne(
           { clientId: this.clientId },
           {
-            sessionData: this.session,
-            isReady: true,
-            readyAt: new Date(),
-            updatedAt: new Date()
+            $set: {
+              sessionData: this.session,
+              isReady: true,
+              readyAt: new Date(),
+              updatedAt: new Date()
+            }
           },
           { upsert: true }
         );
-        console.log(`[MongoDB Auth] ✅ Sesión guardada en MongoDB`);
+        
+        console.log(`[MongoDB Auth] ✅ Sesión guardada en MongoDB - Modified: ${result.modifiedCount}, Upserted: ${result.upsertedCount}`);
+      } else {
+        console.warn(`[MongoDB Auth] ⚠️ No hay sessionData para guardar`);
       }
     } catch (err) {
-      console.error(`[MongoDB Auth] Error guardando sesión:`, err);
+      console.error(`[MongoDB Auth] Error guardando sesión:`, err.message);
     }
   }
 
   async afterBrowserClose() {
     console.log(`[MongoDB Auth] Navegador cerrado para ${this.clientId}`);
-    // La sesión se mantiene en MongoDB para la próxima inicialización
+    // Guardar sesión final antes de cerrar
+    if (this.session) {
+      await this.saveSessionToMongo();
+    }
+  }
+
+  // Método para guardar sesión en cualquier momento
+  async saveSessionToMongo() {
+    try {
+      const now = Date.now();
+      // No guardar más de una vez cada 5 segundos para no saturar BD
+      if (now - this.lastSaveTime < 5000) return;
+      
+      this.lastSaveTime = now;
+      
+      if (!this.session) {
+        console.warn(`[MongoDB Auth] No hay sesión para guardar`);
+        return;
+      }
+
+      await WhatsAppSession.updateOne(
+        { clientId: this.clientId },
+        {
+          $set: {
+            sessionData: this.session,
+            updatedAt: new Date()
+          }
+        },
+        { upsert: true }
+      );
+      
+      console.log(`[MongoDB Auth] ✅ Sesión guardada manualmente en MongoDB`);
+    } catch (err) {
+      console.error(`[MongoDB Auth] Error guardando sesión manualmente:`, err.message);
+    }
   }
 }
 

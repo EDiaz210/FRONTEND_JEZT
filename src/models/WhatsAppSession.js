@@ -10,7 +10,7 @@ const whatsappSessionSchema = new Schema({
   // Datos serializados de la sesión de WhatsApp
   sessionData: {
     type: Schema.Types.Mixed,
-    required: true
+    default: null  // ✅ NO es requerido para permitir guardado gradual
   },
   // Metadata
   qrCode: {
