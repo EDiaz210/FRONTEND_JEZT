@@ -107,6 +107,15 @@ client.on("change_state", async (state) => {
   }
 });
 
+// 🔑 CRÍTICO: Hook de mensajes para mantener sesión actualizada
+client.on("message", async (msg) => {
+  // Cada vez que llega un mensaje, intentar guardar la sesión
+  // Esto es un trigger para mantener la sesión fresca en MongoDB
+  if (mongoDBAuthInstance && getIsReady()) {
+    mongoDBAuthInstance.lastSaveTime = 0; // Reset timer para forzar guardado
+    await mongoDBAuthInstance.saveSessionToMongo();
+  }
+});
 
 // ---------------------- POLLER ----------------------
 let pollerId = null;

@@ -21,6 +21,7 @@ export class MongoDBAuth extends LocalAuth {
     this.clientId = clientId;
     this.lastSaveTime = 0;
     this.capturedSessionData = null;
+    this._session = null; // 🔑 Variable interna para el getter/setter
   }
 
   async beforeBrowserInitialize() {
@@ -32,9 +33,8 @@ export class MongoDBAuth extends LocalAuth {
       if (sessionDoc && sessionDoc.sessionData && Object.keys(sessionDoc.sessionData).length > 0) {
         console.log(`[MongoDB Auth] ✅ Sesión encontrada en MongoDB - restaurando...`);
         
-        // 🔑 CRÍTICO: Establecer la sesión en this.session (que LocalAuth usa)
+        // 🔑 USAR EL SETTER para activar la sincronización
         this.session = sessionDoc.sessionData;
-        this.capturedSessionData = sessionDoc.sessionData;
         
         console.log(`[MongoDB Auth] ✅ Sesión restaurada con éxito (${Object.keys(this.session).length} propiedades)`);
         return this.session;
@@ -110,6 +110,7 @@ export class MongoDBAuth extends LocalAuth {
       if (sessionDoc && sessionDoc.sessionData && Object.keys(sessionDoc.sessionData).length > 0) {
         console.log(`[MongoDB Auth] ✅ loadCreds: Credenciales encontradas en MongoDB`);
         this.session = sessionDoc.sessionData;
+        this.capturedSessionData = sessionDoc.sessionData; // ✅ MANTENER EN SYNC
         return sessionDoc.sessionData;
       } else {
         console.log(`[MongoDB Auth] ⚠️ loadCreds: No hay credenciales en MongoDB`);
@@ -121,6 +122,20 @@ export class MongoDBAuth extends LocalAuth {
     }
   }
 
+  // 🔑 GETTER PARA SESSION - interceptar accesos a this.session
+  get session() {
+    return this._session;
+  }
+
+  // 🔑 SETTER PARA SESSION - interceptar asignaciones a this.session
+  set session(value) {
+    if (value && typeof value === 'object') {
+      this._session = value;
+      this.capturedSessionData = value; // ✅ MANTENER EN SYNC
+      console.log(`[MongoDB Auth] 🔄 Session actualizada (${Object.keys(value).length} claves)`);
+    }
+  }
+
   // Método para guardar sesión en cualquier momento
   async saveSessionToMongo(sessionData = null) {
     try {
@@ -129,9 +144,20 @@ export class MongoDBAuth extends LocalAuth {
       
       this.lastSaveTime = now;
       
-      const sessionToSave = sessionData || this.capturedSessionData || this.session || {};
+      // 🔑 IMPORTANTE: Intentar obtener sesión en este orden
+      const sessionToSave = sessionData || this.capturedSessionData || this.session;
       
       if (!sessionToSave || Object.keys(sessionToSave).length === 0) {
+        // ⚠️ Si no hay sesión pero el cliente está listo, usar un marcador
+        // para que sepa que TIENE que estar autenticado
+        const existingDoc = await WhatsAppSession.findOne({ clientId: this.clientId });
+        
+        if (existingDoc && existingDoc.sessionData && Object.keys(existingDoc.sessionData).length > 0) {
+          // ✅ Ya hay sesión en MongoDB, no hacer nada en esta ocasión
+          console.log(`[MongoDB Auth] ℹ️ Sesión ya existe en MongoDB, saltando`);
+          return;
+        }
+        
         console.warn(`[MongoDB Auth] ⚠️ No hay sesión para guardar`);
         return;
       }
