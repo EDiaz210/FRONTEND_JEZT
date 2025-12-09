@@ -387,9 +387,9 @@ const baneoEstudiante = async (req, res) => {
 // Listar estudiantes
 const listarEstudiantes = async (req, res) => {
   try {
-    // Validar que el usuario autenticado sea administrador
-    if (!req.userBDD || req.userBDD.rol !== "administrador") {
-      return res.status(403).json({ msg: "Acceso denegado: solo administradores pueden listar estudiantes" });
+    // Validar que el usuario autenticado sea administrador o pasante
+    if (!req.userBDD || (req.userBDD.rol !== "administrador" && req.userBDD.rol !== "pasante")) {
+      return res.status(403).json({ msg: "Acceso denegado: solo administradores y pasantes pueden listar estudiantes" });
     }
     const { carrera } = req.query;
     const filtro = { rol: "estudiante", status: true };
