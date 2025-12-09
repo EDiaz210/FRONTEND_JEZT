@@ -45,6 +45,13 @@ const sendMessageSafe = async (number, message, files = []) => {
  */
 const sendMessage = async (req, res) => {
   try {
+    // Validar que sea administrador o pasante
+    if (!req.userBDD || (req.userBDD.rol !== "administrador" && req.userBDD.rol !== "pasante")) {
+      return res.status(403).json({ 
+        error: "Acceso denegado: solo administradores y pasantes pueden enviar mensajes"
+      });
+    }
+
     const ALLOWED_TIPOS = ["Administrativas", "Académicas", "Extracurriculares"];
     
     // Validar categoría
@@ -93,6 +100,13 @@ const sendMessage = async (req, res) => {
  */
 const getQR = async (req, res) => {
   try {
+    // Validar que sea administrador o pasante
+    if (!req.userBDD || (req.userBDD.rol !== "administrador" && req.userBDD.rol !== "pasante")) {
+      return res.status(403).json({ 
+        error: "Acceso denegado: solo administradores y pasantes pueden acceder al QR"
+      });
+    }
+
     if (getIsReady()) return res.json({ ready: true, qr: null });
     
     // getLastQR ahora es async
@@ -109,6 +123,13 @@ const getQR = async (req, res) => {
  */
 const getStatus = async (req, res) => {
   try {
+    // Validar que sea administrador o pasante
+    if (!req.userBDD || (req.userBDD.rol !== "administrador" && req.userBDD.rol !== "pasante")) {
+      return res.status(403).json({ 
+        error: "Acceso denegado: solo administradores y pasantes pueden ver el estado"
+      });
+    }
+
     const state = await client.getState().catch(() => "ERROR");
     res.json({ ready: getIsReady(), state });
   } catch (err) {
@@ -119,6 +140,13 @@ const getStatus = async (req, res) => {
 
 const listaMensajes = async (req, res) => {
   try {
+    // Validar que sea administrador o pasante
+    if (!req.userBDD || (req.userBDD.rol !== "administrador" && req.userBDD.rol !== "pasante")) {
+      return res.status(403).json({ 
+        error: "Acceso denegado: solo administradores y pasantes pueden listar mensajes"
+      });
+    }
+
     const { tipo, fechaInicio, fechaFin } = req.query;
 
     const condiciones = [
@@ -149,6 +177,13 @@ const listaMensajes = async (req, res) => {
 
 const deleteMessage = async (req, res) => {
   try {
+    // Validar que sea administrador o pasante
+    if (!req.userBDD || (req.userBDD.rol !== "administrador" && req.userBDD.rol !== "pasante")) {
+      return res.status(403).json({ 
+        error: "Acceso denegado: solo administradores y pasantes pueden eliminar mensajes"
+      });
+    }
+
     const { id } = req.params;
 
     if (!id) {
@@ -178,6 +213,13 @@ const deleteMessage = async (req, res) => {
 
 const sendMessageN8N = async (req, res) => {
   try {
+    // Validar que sea administrador o pasante
+    if (!req.userBDD || (req.userBDD.rol !== "administrador" && req.userBDD.rol !== "pasante")) {
+      return res.status(403).json({ 
+        error: "Acceso denegado: solo administradores y pasantes pueden enviar mensajes"
+      });
+    }
+
     const ALLOWED_TIPOS = ["Administrativas", "Académicas", "Extracurriculares"];
     
     // Validar categoría
@@ -215,6 +257,13 @@ const sendMessageN8N = async (req, res) => {
  */
 const logout = async (req, res) => {
   try {
+    // Validar que sea administrador o pasante
+    if (!req.userBDD || (req.userBDD.rol !== "administrador" && req.userBDD.rol !== "pasante")) {
+      return res.status(403).json({ 
+        error: "Acceso denegado: solo administradores y pasantes pueden cerrar sesión"
+      });
+    }
+
     // Importar la función para eliminar sesión de MongoDB
     const { deleteSessionFromMongo } = await import('../config/mongoDBAuth.js');
     
