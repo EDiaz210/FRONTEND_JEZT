@@ -249,25 +249,38 @@ export async function deleteSessionFromMongo(clientId) {
   }
 }
 
-// Limpiar carpeta .wwebjs_cache si existe (para Render)
+// Limpiar carpetas de cache y sesión (para Render con límite de almacenamiento)
 export async function cleanupLocalCache() {
   try {
     const fs = await import('fs').then(m => m.default);
     const path = await import('path').then(m => m.default);
+    const os = await import('os').then(m => m.default);
     
-    const cacheDir = path.resolve('.wwebjs_cache');
+    // Carpetas a limpiar
+    const foldersToClean = [
+      '.wwebjs_cache',
+      '.chromium-browser-snapshots',
+      path.join(os.tmpdir(), 'whatsapp-sessions'),
+      path.join(os.tmpdir(), 'puppeteer')
+    ];
     
-    // Verificar si la carpeta existe
-    if (fs.existsSync(cacheDir)) {
-      console.log(`[Cache] Eliminando carpeta local .wwebjs_cache...`);
+    for (const folder of foldersToClean) {
+      const folderPath = path.resolve(folder);
       
-      // Eliminar recursivamente
-      fs.rmSync(cacheDir, { recursive: true, force: true });
-      console.log(`[Cache] .wwebjs_cache eliminada`);
-    } else {
-      console.log(`[Cache] No hay carpeta .wwebjs_cache`);
+      if (fs.existsSync(folderPath)) {
+        console.log(`[Cache] Limpiando: ${folderPath}`);
+        
+        try {
+          fs.rmSync(folderPath, { recursive: true, force: true });
+          console.log(`[Cache] Eliminada: ${folderPath}`);
+        } catch (err) {
+          console.warn(`[Cache] No se pudo eliminar ${folderPath}:`, err.message);
+        }
+      }
     }
+    
+    console.log(`[Cache] Limpieza completada`);
   } catch (err) {
-    console.error(`[Cache] Error limpiando .wwebjs_cache:`, err.message);
+    console.error(`[Cache] Error en limpieza:`, err.message);
   }
 }

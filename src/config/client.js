@@ -4,18 +4,18 @@ const { Client, MessageMedia } = pkg;
 import qrcode from "qrcode";
 import { MongoDBAuth, saveQRToMongo, markAsReadyInMongo, getQRFromMongo, cleanupLocalCache } from "./mongoDBAuth.js";
 
-// ✅ LIMPIAR CARPETA LOCAL AL INICIAR (importante para Render con límite de almacenamiento)
+//  LIMPIAR CARPETA LOCAL AL INICIAR (importante para Render con límite de almacenamiento)
 await cleanupLocalCache();
 
 let lastQR = null;
 let readyAt = null;
-let mongoDBAuthInstance = null;  // 🔑 Guardar referencia a la instancia
+let mongoDBAuthInstance = null;  //  Guardar referencia a la instancia
 
 const mongoDBAuth = new MongoDBAuth("default");
 mongoDBAuthInstance = mongoDBAuth;
 
 const client = new Client({
-  authStrategy: mongoDBAuth, // 🔄 Usar MongoDB en lugar de LocalAuth
+  authStrategy: mongoDBAuth, //  Usar MongoDB en lugar de LocalAuth
   puppeteer: {
     headless: true,
     args: [
@@ -24,6 +24,10 @@ const client = new Client({
       "--disable-dev-shm-usage",
       "--disable-gpu",
       "--disable-blink-features=AutomationControlled",
+      "--disable-cache",
+      "--disable-application-cache",
+      "--disable-offline",
+      "--disk-cache-size=1",
     ],
   },
 });
@@ -33,11 +37,11 @@ client.on("qr", async (qr) => {
   lastQR = await qrcode.toDataURL(qr);
   // 💾 Guardar QR en MongoDB para persistencia
   await saveQRToMongo("default", lastQR);
-  console.log("📌 QR generado y guardado en MongoDB. Escanea en /qr");
+  console.log(" QR generado y guardado en MongoDB. Escanea en /qr");
 });
 
 client.on("authenticated", async (session) => {
-  console.log("✅ Sesión autenticada correctamente");
+  console.log(" Sesión autenticada correctamente");
   console.log(`[Authenticated] Sesión objeto:`, session);
   
   // 💾 Guardar sesión capturada desde evento authenticated
