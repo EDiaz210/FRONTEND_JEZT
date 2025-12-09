@@ -20,6 +20,7 @@ import {
     detalleEstudiante
 
 } from "../controllers/User_controllers.js";
+import { verificarTokenJWT } from '../middlewares/JWT.js'
 import upload from '../middlewares/Upload.js'
 
 const router = express.Router();
@@ -36,7 +37,7 @@ router.get("/recuperarpassword/:token", comprobarTokenPassword);
 router.post("/nuevopassword/:token", crearNuevaPassword);
 
 // Perfil
-router.get("/perfil", verificarTokenJWT, perfil);
+router.get("/perfil",verificarTokenJWT, perfil);
 router.put("/perfil/:id", verificarTokenJWT, updatePerfil);
 router.put("/perfil/actualizarpassword/:id", verificarTokenJWT, updatePassword);
 router.delete("/perfil/eliminar/:id", verificarTokenJWT, deletePerfil);
