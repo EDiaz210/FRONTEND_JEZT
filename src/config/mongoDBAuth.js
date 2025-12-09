@@ -80,7 +80,7 @@ export class MongoDBAuth extends LocalAuth {
       
       console.log(`[MongoDB Auth] Capturando credenciales (${Object.keys(creds).length} claves)`);
       this.capturedSessionData = creds;
-      this.session = creds;
+      this.session = creds; // Usar el setter para sincronizar
       
       // Guardar inmediatamente a MongoDB
       await WhatsAppSession.updateOne(
@@ -97,6 +97,17 @@ export class MongoDBAuth extends LocalAuth {
       console.log(`[MongoDB Auth] Credenciales guardadas en MongoDB desde saveCreds`);
     } catch (err) {
       console.error(`[MongoDB Auth] Error en saveCreds:`, err.message);
+    }
+  }
+
+  // Nuevo: Interceptar cuando se intenta actualizar la sesión
+  async saveSession(session) {
+    try {
+      console.log(`[MongoDB Auth] saveSession interceptado (${Object.keys(session).length} claves)`);
+      this.session = session; // Usar el setter
+      await this.saveSessionToMongo(session);
+    } catch (err) {
+      console.error(`[MongoDB Auth] Error en saveSession:`, err.message);
     }
   }
 
@@ -148,13 +159,12 @@ export class MongoDBAuth extends LocalAuth {
       const sessionToSave = sessionData || this.capturedSessionData || this.session;
       
       if (!sessionToSave || Object.keys(sessionToSave).length === 0) {
-        // Si no hay sesión pero el cliente está listo, usar un marcador
-        // para que sepa que TIENE que estar autenticado
+        // Si no hay sesión pero ya existe una en MongoDB, confiar en ella
         const existingDoc = await WhatsAppSession.findOne({ clientId: this.clientId });
         
         if (existingDoc && existingDoc.sessionData && Object.keys(existingDoc.sessionData).length > 0) {
-          // Ya hay sesión en MongoDB, no hacer nada en esta ocasión
-          console.log(`[MongoDB Auth] Sesión ya existe en MongoDB, saltando`);
+          // Ya hay sesión persistida, no sobreescribir con vacío
+          console.log(`[MongoDB Auth] Sesión ya existe en MongoDB, nada que actualizar`);
           return;
         }
         
