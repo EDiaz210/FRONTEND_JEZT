@@ -3,7 +3,7 @@ import User from "../models/User.js"
 
 const crearTokenJWT = (id, rol) => {
 
-    return jwt.sign({ id, rol }, process.env.JWT_SECRET, { expiresIn: "1d" })
+    return jwt.sign({ id, rol }, process.env.JWT_SECRET, { expiresIn: "2m" })
 }
 
 const verificarTokenJWT = async (req, res, next) => {
